@@ -34,16 +34,16 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
 
   const addProduct = async (productId: number) => {
     try {
-      const product = await api.get(`products/${productId}`);
+      const productExists = cart.some((product) => product.id === productId);
 
-      const productFormatted = {
-        ...product.data,
-        amount: 1,
-      };
+      if (!productExists) {
+        const product = await api.get(`products/${productId}`);
 
-      const passed = cart.some((product) => product.id === productId);
+        const productFormatted = {
+          ...product.data,
+          amount: 1,
+        };
 
-      if (!passed) {
         setCart([...cart, productFormatted]);
         localStorage.setItem(
           "@RocketShoes:cart",
@@ -53,14 +53,21 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
         const stock = await api.get(`stock/${productId}`);
 
         const cartFiltered = cart.filter((product) => product.id !== productId);
-        let productAmount = cart.filter((product) => product.id === productId);
+        let productIndex = 0;
+        let productAmount = cart.filter((product, index) => {
+          if (product.id === productId) {
+            productIndex = index;
+            return true;
+          }
+          return false;
+        });
 
         productAmount[0] = {
           ...productAmount[0],
           amount: productAmount[0].amount + 1,
         };
 
-        cartFiltered.push(productAmount[0]);
+        cartFiltered.splice(productIndex, 0, productAmount[0]);
 
         if (stock.data?.amount >= productAmount[0].amount) {
           setCart(cartFiltered);
@@ -101,7 +108,15 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
       const stock = await api.get(`stock/${productId}`);
 
       const cartFiltered = cart.filter((product) => product.id !== productId);
-      let productAmount = cart.filter((product) => product.id === productId);
+
+      let productIndex = 0;
+      let productAmount = cart.filter((product, index) => {
+        if (product.id === productId) {
+          productIndex = index;
+          return true;
+        }
+        return false;
+      });
 
       if (amount < 1) {
         return;
@@ -111,7 +126,7 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
         amount: amount,
       };
 
-      cartFiltered.push(productAmount[0]);
+      cartFiltered.splice(productIndex, 0, productAmount[0]);
 
       if (stock.data?.amount >= productAmount[0].amount) {
         setCart(cartFiltered);
